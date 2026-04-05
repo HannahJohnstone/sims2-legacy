@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { useState, useEffect, useRef } from "react";
+/* eslint-disable no-unused-vars */
 import { supabase } from './supabase';
 
 const ASPIRATIONS = ["Popularity","Romance","Family","Fortune","Knowledge","Pleasure","Grilled Cheese"];
@@ -99,8 +100,6 @@ function TraitSliders({traits,onChange}){
     </div>
   );
 }
-
-const traitLabelStyle = {fontSize:"11px",color:"#fff"};
 
 function RelationshipInput({relationships,onChange,members,currentName}){
   const [name,setName]=useState("");const [type,setType]=useState(REL_TYPES[0]);const [showSugg,setShowSugg]=useState(false);
@@ -508,7 +507,7 @@ function FamilySagaGenerator({members,events,familyName}){
       return [...prev,{beat,actions,index}];
     });
   };
-  
+
   const buildPrompt=()=>{
     const byGen={};
     members.forEach(m=>{if(!byGen[m.generation])byGen[m.generation]=[];byGen[m.generation].push(m);});
