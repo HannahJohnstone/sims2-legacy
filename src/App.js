@@ -650,15 +650,6 @@ export default function App(){
     } catch(e) { console.error(e); }
   };
 
-  const save=async(nm,ne,nf,nn)=>{
-    try{
-      await window.storage.set("legacy-familyName",nf??familyName);
-      await window.storage.set("legacy-members",JSON.stringify(nm??members));
-      await window.storage.set("legacy-events",JSON.stringify(ne??events));
-      await window.storage.set("legacy-nextId",String(nn??nextId.current));
-    }catch{}
-  };
-
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
   const setTrait=(k,v)=>setTraits(t=>({...t,[k]:v}));
 
