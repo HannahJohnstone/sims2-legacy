@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-globals */
 import { useState, useEffect, useRef } from "react";
 
 const ASPIRATIONS = ["Popularity","Romance","Family","Fortune","Knowledge","Pleasure","Grilled Cheese"];
