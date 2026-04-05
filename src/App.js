@@ -479,12 +479,12 @@ function Timeline({events}){
   if(!events.length) return <p style={{fontSize:"13px",color:THEME.textMuted,margin:0}}>No events logged yet.</p>;
   return(
     <div style={{position:"relative",paddingLeft:"20px"}}>
-      <div style={{position:"absolute",left:"6px",top:0,bottom:0,width:"1px",background:THEME.border}}/>
+      <div style={{position:"absolute",left:"6px",top:0,bottom:0,width:"1px",background:THEME.brown}}/>
       {events.map((ev,i)=>(
         <div key={i} style={{position:"relative",marginBottom:"14px"}}>
           <div style={{position:"absolute",left:"-17px",top:"4px",width:"8px",height:"8px",borderRadius:"50%",background:GEN_COLORS[(ev.generation-1)%GEN_COLORS.length]}}/>
-          <p style={{margin:"0 0 1px",fontSize:"11px",color:THEME.textMuted}}>Gen {ev.generation} · {ev.simName}</p>
-          <p style={{margin:0,fontSize:"13px",color:THEME.text,lineHeight:1.5}}>{ev.beat}</p>
+          <p style={{margin:"0 0 1px",fontSize:"11px",color:THEME.brown}}>Gen {ev.generation} · {ev.simName}</p>
+          <p style={{margin:0,fontSize:"13px",color:THEME.panel,lineHeight:1.5}}>{ev.beat}</p>
         </div>
       ))}
     </div>
