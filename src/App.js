@@ -99,8 +99,6 @@ function TraitSliders({traits,onChange}){
   );
 }
 
-const traitLabelStyle = {fontSize:"11px",color:"#fff"};
-
 function RelationshipInput({relationships,onChange,members,currentName}){
   const [name,setName]=useState("");const [type,setType]=useState(REL_TYPES[0]);const [showSugg,setShowSugg]=useState(false);
   const sugg=members.map(m=>m.name).filter(n=>n!==currentName&&n.toLowerCase().includes(name.toLowerCase())&&name.length>0);
