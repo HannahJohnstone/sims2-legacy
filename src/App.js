@@ -206,7 +206,37 @@ function ToDoList({items}){
 
 // ── Legacy Chat ───────────────────────────────────────────────────────────────
 function LegacyChat({members,events,familyName,onUpdateMember,onLogEvent}){
-  const [messages,setMessages]=useState([{role:"assistant",content:`Hi! I'm your legacy diary. Tell me what's been happening with the ${familyName||"family"} — who aged up, who fell in love, any drama or surprises? I'll update their profiles and log it all to the chronicle for you. 📖`}]);
+  const defaultMsg = {role:"assistant",content:`Hi! I'm your legacy diary. Tell me what's been happening with the ${familyName||"family"} — who aged up, who fell in love, any drama or surprises? I'll update their profiles and log it all to the chronicle for you. 📖`};
+  const [messages,setMessages]=useState([defaultMsg]);
+  // Load chat history from Supabase on mount
+  useEffect(()=>{
+    (async()=>{
+      try {
+        const { data } = await supabase
+          .from('chat_history')
+          .select('role, content')
+          .order('created_at', { ascending: true });
+        if(data?.length > 0) {
+          setMessages(data);
+        }
+      } catch(e) { console.error(e); }
+    })();
+  },[]);
+
+  // Save a message to Supabase
+  const saveMessage = async (role, content) => {
+    try {
+      await supabase.from('chat_history').insert({ role, content });
+    } catch(e) { console.error(e); }
+  };
+
+  // Clear chat history (new session)
+  const clearChat = async () => {
+    await supabase.from('chat_history').delete().neq('id', 0);
+    setMessages([defaultMsg]);
+    await supabase.from('chat_history').insert({ role: defaultMsg.role, content: defaultMsg.content });
+  };
+
   const [input,setInput]=useState("");
   const [focusSim,setFocusSim]=useState("family");
   const [loading,setLoading]=useState(false);
@@ -246,6 +276,7 @@ Only include fields that actually changed. Only include the <update> block if th
     const userMsg={role:"user",content:input.trim()};
     const newMsgs=[...messages,userMsg];
     setMessages(newMsgs); setInput(""); setLoading(true);
+    saveMessage("user", input.trim());
     try{
       const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,system:buildSystemPrompt(),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
       const data=await res.json();
@@ -291,6 +322,7 @@ Only include fields that actually changed. Only include the <update> block if th
       if(loggedBeats.length) statusNote+=`\n📖 Logged to chronicle: ${[...new Set(loggedBeats)].join(", ")}`;
 
       setMessages([...newMsgs,{role:"assistant",content:cleanText+(statusNote?statusNote:"")}]);
+      saveMessage("assistant", cleanText+(statusNote?statusNote:""));
     }catch{
       setMessages([...newMsgs,{role:"assistant",content:"Oops, something went wrong! Try again."}]);
     }
@@ -309,6 +341,7 @@ Only include fields that actually changed. Only include the <update> block if th
           {aliveSims.map(m=><option key={m.id} value={m.id}>{m.name} (Gen {m.generation})</option>)}
         </select>
       </div>
+      <button onClick={clearChat} style={{fontSize:"12px",padding:"6px 10px",borderRadius:"8px",cursor:"pointer",background:THEME.panelAlt,color:THEME.textMuted,border:`1px solid ${THEME.border}`,marginBottom:"12px"}}>🗑 New session</button>
 
       {/* Messages */}
       <div style={{flex:1,overflowY:"auto",marginBottom:"12px",display:"flex",flexDirection:"column",gap:"10px",maxHeight:"420px",padding:"4px 0"}}>
