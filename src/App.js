@@ -247,7 +247,7 @@ Only include fields that actually changed. Only include the <update> block if th
     const newMsgs=[...messages,userMsg];
     setMessages(newMsgs); setInput(""); setLoading(true);
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,system:buildSystemPrompt(),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
+      const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,system:buildSystemPrompt(),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
       const data=await res.json();
       const raw=data.content.map(i=>i.text||"").join("");
 
@@ -520,7 +520,7 @@ function FamilySagaGenerator({members,events,familyName}){
     if(!members.length){setError("Add some family members first!");return;}
     setError("");setLoading(true);setSagaBeats([]);setTodoList([]);
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:buildPrompt()}]})});
+      const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:buildPrompt()}]})});
       const data=await res.json();
       const text=data.content.map(i=>i.text||"").join("");
       const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
@@ -658,7 +658,7 @@ export default function App(){
   };
 
   const clearLegacy=async()=>{
-    if(!confirm("Clear the entire legacy? This cannot be undone.")) return;
+    if(!window.confirm("Clear the entire legacy? This cannot be undone.")) return;
     setMembers(SEED);setEvents([]);setFamilyName("The Stone-Danaher Legacy");nextId.current=11;
     try{await window.storage.delete("legacy-familyName");await window.storage.delete("legacy-members");await window.storage.delete("legacy-events");await window.storage.delete("legacy-nextId");}catch{}
   };
@@ -678,7 +678,7 @@ export default function App(){
     const relDesc=form.relationships.length?form.relationships.map(r=>`${r.name} (${r.type})`).join(", "):"None";
     const prompt=`You are a Sims 2 storyteller. Generate 5 story beats with optional in-game actions.\n\n${buildContext()?`LEGACY:\n${buildContext()}\n`:""}\nSim: ${form.name}, ${form.age||"Adult"}, Gen ${form.generation||1}, ${form.aspiration||"no aspiration"}, ${form.career||"Unemployed"}${form.career&&form.career!=="Unemployed"?` Lvl ${form.careerLevel}`:""}, mood: ${form.mood||"Green"}\nTraits: ${traitDesc}\nRelationships: ${relDesc}\nWants: ${form.wants.length?form.wants.join(", "):"None"}\nFears: ${form.fears.length?form.fears.join(", "):"None"}\nSituation: ${form.situation||"Not specified"}\nRecent: ${form.recentEvents||"Nothing notable"}\n${selectedBeat?`Continuing from: "${selectedBeat}"`:""}Fulfil or frustrate wants; use fears for tension.\nReturn JSON only:\n{"beats":[{"beat":"text","actions":[{"type":"task"|"relationship"|"challenge"|"fate","text":"action"}]}],"todo":[{"type":"...","text":"..."}]}\n5 beats, 0-2 actions each. todo: 3-5 items. No preamble, no backticks.`;
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
+      const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
       const data=await res.json();
       const text=data.content.map(i=>i.text||"").join("");
       const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
