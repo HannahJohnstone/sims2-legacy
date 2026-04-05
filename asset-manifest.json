@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/sims2-legacy/static/js/main.8c444ce0.js",
+    "index.html": "/sims2-legacy/index.html",
+    "main.8c444ce0.js.map": "/sims2-legacy/static/js/main.8c444ce0.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.8c444ce0.js"
+  ]
+}
