@@ -100,6 +100,8 @@ function TraitSliders({traits,onChange}){
   );
 }
 
+const traitLabelStyle = {fontSize:"11px",color:"#fff"};
+
 function RelationshipInput({relationships,onChange,members,currentName}){
   const [name,setName]=useState("");const [type,setType]=useState(REL_TYPES[0]);const [showSugg,setShowSugg]=useState(false);
   const sugg=members.map(m=>m.name).filter(n=>n!==currentName&&n.toLowerCase().includes(name.toLowerCase())&&name.length>0);
@@ -159,7 +161,7 @@ function BeatWithActions({beat,actions,index,onSelect}){
       <div style={{display:"flex",gap:"10px",alignItems:"flex-start"}}>
         <div style={{minWidth:"22px",height:"22px",borderRadius:"50%",background:"var(--color-background-secondary)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",fontWeight:500,color:"var(--color-text-secondary)",marginTop:"1px",flexShrink:0}}>{labels[index]}</div>
         <div style={{flex:1}}>
-          <p style={{margin:0,fontSize:"14px",lineHeight:1.6,color:"var(--color-text-primary)"}}>{beat}</p>
+          <p style={{margin:0,fontSize:"14px",lineHeight:1.6,color:THEME.text}}>{beat}</p>
           {actions?.length>0&&<div style={{marginTop:"6px"}} onClick={e=>e.stopPropagation()}>{actions.map((a,i)=><ActionChip key={i} type={a.type} text={a.text}/>)}</div>}
         </div>
       </div>
@@ -167,16 +169,17 @@ function BeatWithActions({beat,actions,index,onSelect}){
   );
 }
 
-function SagaBeatWithActions({beat,actions,index}){
+function SagaBeatWithActions({beat,actions,index,pinned,onPin}){
   const colors=["#7F77DD","#1D9E75","#D85A30","#D4537E","#378ADD"];
   return(
-    <div style={{...fs.card,borderLeft:`3px solid ${colors[index%colors.length]}`}}>
+    <div style={{...fs.card,borderLeft:`3px solid ${colors[index%colors.length]}`,position:"relative"}}>
       <div style={{display:"flex",gap:"10px",alignItems:"flex-start"}}>
-        <div style={{minWidth:"22px",height:"22px",borderRadius:"50%",background:"var(--color-background-secondary)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",fontWeight:500,color:"var(--color-text-secondary)",marginTop:"1px",flexShrink:0}}>{index+1}</div>
+        <div style={{minWidth:"22px",height:"22px",borderRadius:"50%",background:THEME.panelAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",fontWeight:500,color:THEME.textMuted,marginTop:"1px",flexShrink:0}}>{index+1}</div>
         <div style={{flex:1}}>
-          <p style={{margin:0,fontSize:"14px",lineHeight:1.6,color:"var(--color-text-primary)"}}>{beat}</p>
+          <p style={{margin:0,fontSize:"14px",lineHeight:1.6,color:THEME.text}}>{beat}</p>
           {actions?.length>0&&<div style={{marginTop:"6px"}}>{actions.map((a,i)=><ActionChip key={i} type={a.type} text={a.text}/>)}</div>}
         </div>
+        <button onClick={()=>onPin(beat,actions,index)} title={pinned?"Unpin":"Pin this beat"} style={{background:"none",border:"none",cursor:"pointer",fontSize:"16px",flexShrink:0,opacity:pinned?1:0.4,transition:"opacity 0.2s"}}>{pinned?"📌":"📍"}</button>
       </div>
     </div>
   );
@@ -206,37 +209,7 @@ function ToDoList({items}){
 
 // ── Legacy Chat ───────────────────────────────────────────────────────────────
 function LegacyChat({members,events,familyName,onUpdateMember,onLogEvent}){
-  const defaultMsg = {role:"assistant",content:`Hi! I'm your legacy diary. Tell me what's been happening with the ${familyName||"family"} — who aged up, who fell in love, any drama or surprises? I'll update their profiles and log it all to the chronicle for you. 📖`};
-  const [messages,setMessages]=useState([defaultMsg]);
-  // Load chat history from Supabase on mount
-  useEffect(()=>{
-    (async()=>{
-      try {
-        const { data } = await supabase
-          .from('chat_history')
-          .select('role, content')
-          .order('created_at', { ascending: true });
-        if(data?.length > 0) {
-          setMessages(data);
-        }
-      } catch(e) { console.error(e); }
-    })();
-  },[]);
-
-  // Save a message to Supabase
-  const saveMessage = async (role, content) => {
-    try {
-      await supabase.from('chat_history').insert({ role, content });
-    } catch(e) { console.error(e); }
-  };
-
-  // Clear chat history (new session)
-  const clearChat = async () => {
-    await supabase.from('chat_history').delete().neq('id', 0);
-    setMessages([defaultMsg]);
-    await supabase.from('chat_history').insert({ role: defaultMsg.role, content: defaultMsg.content });
-  };
-
+  const [messages,setMessages]=useState([{role:"assistant",content:`Hi! I'm your legacy diary. Tell me what's been happening with the ${familyName||"family"} — who aged up, who fell in love, any drama or surprises? I'll update their profiles and log it all to the chronicle for you. 📖`}]);
   const [input,setInput]=useState("");
   const [focusSim,setFocusSim]=useState("family");
   const [loading,setLoading]=useState(false);
@@ -276,9 +249,8 @@ Only include fields that actually changed. Only include the <update> block if th
     const userMsg={role:"user",content:input.trim()};
     const newMsgs=[...messages,userMsg];
     setMessages(newMsgs); setInput(""); setLoading(true);
-    saveMessage("user", input.trim());
     try{
-      const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,system:buildSystemPrompt(),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,system:buildSystemPrompt(),messages:newMsgs.map(m=>({role:m.role,content:m.content}))})});
       const data=await res.json();
       const raw=data.content.map(i=>i.text||"").join("");
 
@@ -322,7 +294,6 @@ Only include fields that actually changed. Only include the <update> block if th
       if(loggedBeats.length) statusNote+=`\n📖 Logged to chronicle: ${[...new Set(loggedBeats)].join(", ")}`;
 
       setMessages([...newMsgs,{role:"assistant",content:cleanText+(statusNote?statusNote:"")}]);
-      saveMessage("assistant", cleanText+(statusNote?statusNote:""));
     }catch{
       setMessages([...newMsgs,{role:"assistant",content:"Oops, something went wrong! Try again."}]);
     }
@@ -341,7 +312,6 @@ Only include fields that actually changed. Only include the <update> block if th
           {aliveSims.map(m=><option key={m.id} value={m.id}>{m.name} (Gen {m.generation})</option>)}
         </select>
       </div>
-      <button onClick={clearChat} style={{fontSize:"12px",padding:"6px 10px",borderRadius:"8px",cursor:"pointer",background:THEME.panelAlt,color:THEME.textMuted,border:`1px solid ${THEME.border}`,marginBottom:"12px"}}>🗑 New session</button>
 
       {/* Messages */}
       <div style={{flex:1,overflowY:"auto",marginBottom:"12px",display:"flex",flexDirection:"column",gap:"10px",maxHeight:"420px",padding:"4px 0"}}>
@@ -549,11 +519,19 @@ function FamilySagaGenerator({members,events,familyName}){
     return ctx;
   };
 
+  const togglePin=(beat,actions,index)=>{
+    setPinnedBeats(prev=>{
+      const exists=prev.find(p=>p.beat===beat);
+      if(exists) return prev.filter(p=>p.beat!==beat);
+      return [...prev,{beat,actions,index}];
+    });
+  };
+
   const generate=async()=>{
     if(!members.length){setError("Add some family members first!");return;}
     setError("");setLoading(true);setSagaBeats([]);setTodoList([]);
     try{
-      const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:buildPrompt()}]})});
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:buildPrompt()}]})});
       const data=await res.json();
       const text=data.content.map(i=>i.text||"").join("");
       const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
@@ -626,62 +604,27 @@ export default function App(){
 
   useEffect(()=>{
     (async()=>{
-      try {
-        // Load members
-        const { data: membersData } = await supabase
-          .from('members')
-          .select('data')
-          .order('id', { ascending: true });
-        if (membersData?.length > 0) {
-          setMembers(membersData.map(r => ({wants:[],fears:[],...r.data})));
-        }
-
-        // Load events
-        const { data: eventsData } = await supabase
-          .from('events')
-          .select('data')
-          .order('created_at', { ascending: false });
-        if (eventsData?.length > 0) {
-          setEvents(eventsData.map(r => r.data));
-        }
-
-        // Load family name
-        const { data: settingsData } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('key', 'familyName')
-          .single();
-        if (settingsData) setFamilyName(settingsData.value);
-
-      } catch(e) { console.error(e); }
+      try{
+        const fn=await window.storage.get("legacy-familyName");
+        const mb=await window.storage.get("legacy-members");
+        const ev=await window.storage.get("legacy-events");
+        const ni=await window.storage.get("legacy-nextId");
+        if(fn&&fn.value) setFamilyName(fn.value);
+        if(mb){const p=JSON.parse(mb.value);if(p.length>0)setMembers(p.map(m=>({wants:[],fears:[],...m})));}
+        if(ev) setEvents(JSON.parse(ev.value));
+        if(ni&&parseInt(ni.value)>1) nextId.current=parseInt(ni.value);
+      }catch{}
       setStorageLoaded(true);
     })();
   },[]);
 
-  // Replace your existing save function with this:
-  const save = async (nm, ne, nf, nn) => {
-    try {
-      // Save members if changed
-      if (nm !== null && nm !== undefined) {
-        await supabase.from('members').delete().neq('id', 0);
-        if (nm.length > 0) {
-          await supabase.from('members').insert(nm.map(m => ({ data: m })));
-        }
-      }
-
-      // Save events if changed
-      if (ne !== null && ne !== undefined) {
-        await supabase.from('events').delete().neq('id', 0);
-        if (ne.length > 0) {
-          await supabase.from('events').insert(ne.map(e => ({ data: e })));
-        }
-      }
-
-      // Save family name if changed
-      if (nf !== null && nf !== undefined) {
-        await supabase.from('settings').upsert({ key: 'familyName', value: nf });
-      }
-    } catch(e) { console.error(e); }
+  const save=async(nm,ne,nf,nn)=>{
+    try{
+      await window.storage.set("legacy-familyName",nf??familyName);
+      await window.storage.set("legacy-members",JSON.stringify(nm??members));
+      await window.storage.set("legacy-events",JSON.stringify(ne??events));
+      await window.storage.set("legacy-nextId",String(nn??nextId.current));
+    }catch{}
   };
 
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
@@ -726,7 +669,7 @@ export default function App(){
   };
 
   const clearLegacy=async()=>{
-    if(!window.confirm("Clear the entire legacy? This cannot be undone.")) return;
+    if(!confirm("Clear the entire legacy? This cannot be undone.")) return;
     setMembers(SEED);setEvents([]);setFamilyName("The Stone-Danaher Legacy");nextId.current=11;
     try{await window.storage.delete("legacy-familyName");await window.storage.delete("legacy-members");await window.storage.delete("legacy-events");await window.storage.delete("legacy-nextId");}catch{}
   };
@@ -746,7 +689,7 @@ export default function App(){
     const relDesc=form.relationships.length?form.relationships.map(r=>`${r.name} (${r.type})`).join(", "):"None";
     const prompt=`You are a Sims 2 storyteller. Generate 5 story beats with optional in-game actions.\n\n${buildContext()?`LEGACY:\n${buildContext()}\n`:""}\nSim: ${form.name}, ${form.age||"Adult"}, Gen ${form.generation||1}, ${form.aspiration||"no aspiration"}, ${form.career||"Unemployed"}${form.career&&form.career!=="Unemployed"?` Lvl ${form.careerLevel}`:""}, mood: ${form.mood||"Green"}\nTraits: ${traitDesc}\nRelationships: ${relDesc}\nWants: ${form.wants.length?form.wants.join(", "):"None"}\nFears: ${form.fears.length?form.fears.join(", "):"None"}\nSituation: ${form.situation||"Not specified"}\nRecent: ${form.recentEvents||"Nothing notable"}\n${selectedBeat?`Continuing from: "${selectedBeat}"`:""}Fulfil or frustrate wants; use fears for tension.\nReturn JSON only:\n{"beats":[{"beat":"text","actions":[{"type":"task"|"relationship"|"challenge"|"fate","text":"action"}]}],"todo":[{"type":"...","text":"..."}]}\n5 beats, 0-2 actions each. todo: 3-5 items. No preamble, no backticks.`;
     try{
-      const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
       const data=await res.json();
       const text=data.content.map(i=>i.text||"").join("");
       const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
