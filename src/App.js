@@ -592,19 +592,63 @@ export default function App(){
 
   useEffect(()=>{
     (async()=>{
-      try{
-        const fn=await window.storage.get("legacy-familyName");
-        const mb=await window.storage.get("legacy-members");
-        const ev=await window.storage.get("legacy-events");
-        const ni=await window.storage.get("legacy-nextId");
-        if(fn&&fn.value) setFamilyName(fn.value);
-        if(mb){const p=JSON.parse(mb.value);if(p.length>0)setMembers(p.map(m=>({wants:[],fears:[],...m})));}
-        if(ev) setEvents(JSON.parse(ev.value));
-        if(ni&&parseInt(ni.value)>1) nextId.current=parseInt(ni.value);
-      }catch{}
+      try {
+        // Load members
+        const { data: membersData } = await supabase
+          .from('members')
+          .select('data')
+          .order('id', { ascending: true });
+        if (membersData?.length > 0) {
+          setMembers(membersData.map(r => ({wants:[],fears:[],...r.data})));
+        }
+
+        // Load events
+        const { data: eventsData } = await supabase
+          .from('events')
+          .select('data')
+          .order('created_at', { ascending: false });
+        if (eventsData?.length > 0) {
+          setEvents(eventsData.map(r => r.data));
+        }
+
+        // Load family name
+        const { data: settingsData } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'familyName')
+          .single();
+        if (settingsData) setFamilyName(settingsData.value);
+
+      } catch(e) { console.error(e); }
       setStorageLoaded(true);
     })();
   },[]);
+
+  // Replace your existing save function with this:
+  const save = async (nm, ne, nf, nn) => {
+    try {
+      // Save members if changed
+      if (nm !== null && nm !== undefined) {
+        await supabase.from('members').delete().neq('id', 0);
+        if (nm.length > 0) {
+          await supabase.from('members').insert(nm.map(m => ({ data: m })));
+        }
+      }
+
+      // Save events if changed
+      if (ne !== null && ne !== undefined) {
+        await supabase.from('events').delete().neq('id', 0);
+        if (ne.length > 0) {
+          await supabase.from('events').insert(ne.map(e => ({ data: e })));
+        }
+      }
+
+      // Save family name if changed
+      if (nf !== null && nf !== undefined) {
+        await supabase.from('settings').upsert({ key: 'familyName', value: nf });
+      }
+    } catch(e) { console.error(e); }
+  };
 
   const save=async(nm,ne,nf,nn)=>{
     try{
