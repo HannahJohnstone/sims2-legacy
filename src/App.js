@@ -16,10 +16,24 @@ const TRAITS = [
 const WANT_SUGGESTIONS = ["Become a werewolf","Become a vampire","Become a plantsim","Become a witch","Get married","Have a baby","Get engaged","Fall in love","Reach top of career","Get promoted","Earn §100,000","Make a best friend","Woohoo","Skill up cooking","Skill up logic","Buy something","Throw a party","Reach platinum mood","Graduate from university","Go on a date","Adopt a pet"];
 const FEAR_SUGGESTIONS = ["Die","Get fired","Relative dies","Break up","Get demoted","Become a zombie","Burglary","House fire","Failing exam","Electrocution","Drowning","Satellite crash","Cockroach infestation","Having a bad date","Social bunny visit","Aspiration failure"];
 
+const THEME = {
+  bg: "#E8DCC8",
+  panel: "#2C2118",
+  panelAlt: "#3A2D20",
+  border: "#5C4A32",
+  borderLight: "#7A6245",
+  text: "#F5EDD8",
+  textMuted: "#B8A080",
+  gold: "#C9923A",
+  goldLight: "#E8B05A",
+  brown: "#8B6340",
+  danger: "#C0503A",
+};
+
 const fs = {
-  field:{width:"100%",boxSizing:"border-box",padding:"8px 10px",fontSize:"14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",marginTop:"4px"},
-  label:{fontSize:"12px",color:"var(--color-text-secondary)",fontWeight:500,display:"block",marginBottom:"2px"},
-  card:{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",padding:"1rem 1.25rem",marginBottom:"10px"},
+  field:{width:"100%",boxSizing:"border-box",padding:"8px 10px",fontSize:"14px",borderRadius:"8px",border:`1px solid ${THEME.border}`,background:THEME.panelAlt,color:THEME.text,marginTop:"4px"},
+  label:{fontSize:"12px",color:THEME.textMuted,fontWeight:600,display:"block",marginBottom:"2px",textTransform:"uppercase",letterSpacing:"0.05em"},
+  card:{background:THEME.panel,border:`1px solid ${THEME.border}`,borderRadius:"12px",padding:"1rem 1.25rem",marginBottom:"10px"},
 };
 const defaultTraits={neat:5,outgoing:5,active:5,playful:5,nice:5};
 const defaultForm={name:"",age:"",aspiration:"",career:"",careerLevel:"1",relationships:[],situation:"",recentEvents:"",mood:"",generation:"1",role:"",wants:[],fears:[]};
@@ -34,10 +48,10 @@ function WantsFearInput({label,color,items,onChange,suggestions}){
     <div style={{flex:1}}>
       <label style={{...fs.label,color}}>{label}</label>
       <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"6px",minHeight:"24px"}}>
-        {items.length===0&&<span style={{fontSize:"12px",color:"var(--color-text-secondary)"}}>None yet.</span>}
+        {items.length===0&&<span style={{fontSize:"12px",color:THEME.text}}>None yet.</span>}
         {items.map((it,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:"3px",background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-md)",padding:"3px 8px",fontSize:"12px",border:`0.5px solid ${color}44`}}>
-            <span style={{color:"var(--color-text-primary)"}}>{it}</span>
+            <span style={{color:THEME.text}}>{it}</span>
             <button onClick={()=>remove(i)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--color-text-secondary)",fontSize:"12px",padding:"0 0 0 3px",lineHeight:1}}>×</button>
           </div>
         ))}
@@ -73,9 +87,9 @@ function TraitSliders({traits,onChange}){
       {TRAITS.map(t=>(
         <div key={t.key}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
-            <span style={{fontSize:"11px",color:"var(--color-text-secondary)"}}>{t.left}</span>
-            <span style={{fontSize:"11px",fontWeight:500,color:"var(--color-text-secondary)"}}>{t.label}</span>
-            <span style={{fontSize:"11px",color:"var(--color-text-secondary)"}}>{t.right}</span>
+            <span style={{fontSize:"11px",color:THEME.text}}>{t.left}</span>
+            <span style={{fontSize:"11px",fontWeight:500,color:THEME.textMuted}}>{t.label}</span>
+            <span style={{fontSize:"11px",color:THEME.text}}>{t.right}</span>
           </div>
           <input type="range" min="1" max="10" step="1" value={traits[t.key]} onChange={e=>onChange(t.key,parseInt(e.target.value))} style={{width:"100%"}}/>
         </div>
@@ -83,6 +97,8 @@ function TraitSliders({traits,onChange}){
     </div>
   );
 }
+
+const traitLabelStyle = {fontSize:"11px",color:"#fff"};
 
 function RelationshipInput({relationships,onChange,members,currentName}){
   const [name,setName]=useState("");const [type,setType]=useState(REL_TYPES[0]);const [showSugg,setShowSugg]=useState(false);
@@ -642,7 +658,7 @@ export default function App(){
   };
 
   const clearLegacy=async()=>{
-    if(!window.confirm("Clear the entire legacy? This cannot be undone.")) return;
+    if(!confirm("Clear the entire legacy? This cannot be undone.")) return;
     setMembers(SEED);setEvents([]);setFamilyName("The Stone-Danaher Legacy");nextId.current=11;
     try{await window.storage.delete("legacy-familyName");await window.storage.delete("legacy-members");await window.storage.delete("legacy-events");await window.storage.delete("legacy-nextId");}catch{}
   };
@@ -672,18 +688,25 @@ export default function App(){
   };
 
   const TabBtn=({id,label,badge})=>(
-    <button onClick={()=>setTab(id)} style={{padding:"8px 16px",fontSize:"13px",fontWeight:tab===id?500:400,borderRadius:"var(--border-radius-md)",border:tab===id?"0.5px solid var(--color-border-primary)":"0.5px solid transparent",background:tab===id?"var(--color-background-secondary)":"transparent",color:"var(--color-text-primary)",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px"}}>
-      {label}{badge&&<span style={{fontSize:"10px",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"10px",padding:"1px 6px",color:"var(--color-text-secondary)"}}>{badge}</span>}
+    <button onClick={()=>setTab(id)} style={{padding:"8px 16px",fontSize:"13px",fontWeight:600,borderRadius:"8px",border:"none",background:tab===id?THEME.gold:"transparent",color:tab===id?"#fff":THEME.textMuted,cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",transition:"all 0.2s"}}>
+      {label}{badge&&<span style={{fontSize:"10px",background:"rgba(255,255,255,0.2)",borderRadius:"10px",padding:"1px 6px",color:tab===id?"#fff":THEME.textMuted}}>{badge}</span>}
     </button>
   );
 
-  if(!storageLoaded) return <p style={{fontSize:"14px",color:"var(--color-text-secondary)",padding:"2rem 0"}}>Loading legacy...</p>;
+  if(!storageLoaded) return <div style={{minHeight:"100vh",background:THEME.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><p style={{fontSize:"14px",color:THEME.brown}}>Loading legacy...</p></div>;
 
   return(
-    <div style={{padding:"1rem 0",maxWidth:"640px",margin:"0 auto"}}>
+    <div style={{minHeight:"100vh",background:THEME.bg,padding:"0"}}>
+      <div style={{maxWidth:"680px",margin:"0 auto",padding:"1.5rem 1rem"}}>
       {selectedSim&&<SimModal sim={selectedSim} events={events} members={members} onClose={()=>setSelectedSim(null)} onSave={updateMember} onLoadToGenerator={loadToGenerator} onDelete={deleteMember}/>}
 
-      <div style={{display:"flex",gap:"4px",marginBottom:"1.5rem",borderBottom:"0.5px solid var(--color-border-tertiary)",paddingBottom:"8px",flexWrap:"wrap"}}>
+      {/* Header */}
+      <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
+        <h1 style={{margin:"0 0 4px",fontSize:"22px",fontWeight:700,color:THEME.panel,letterSpacing:"0.05em",textTransform:"uppercase"}}>{familyName||"My Legacy"}</h1>
+        <p style={{margin:0,fontSize:"12px",color:THEME.brown,letterSpacing:"0.08em",textTransform:"uppercase"}}>Sims 2 Legacy Planner</p>
+      </div>
+
+      <div style={{display:"flex",gap:"4px",marginBottom:"1.5rem",background:THEME.panel,borderRadius:"12px",padding:"6px",flexWrap:"wrap"}}>
         <TabBtn id="generator" label="Generator"/>
         <TabBtn id="saga" label="Family Saga" badge={members.length?`${members.length} Sims`:null}/>
         <TabBtn id="chat" label="Legacy Diary" badge="💬"/>
@@ -750,19 +773,20 @@ export default function App(){
             <label style={fs.label}>Legacy / family name</label>
             <div style={{display:"flex",gap:"8px",marginTop:"4px"}}>
               <input style={{...fs.field,marginTop:0,flex:1}} placeholder="e.g. The Goth Legacy" value={familyName} onChange={e=>setFamilyName(e.target.value)}/>
-              <button style={{fontSize:"13px",padding:"8px 14px",borderRadius:"var(--border-radius-md)",cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>save(null,null,familyName,null)}>Save</button>
+              <button style={{fontSize:"13px",padding:"8px 14px",borderRadius:"8px",cursor:"pointer",whiteSpace:"nowrap",background:THEME.gold,color:"#fff",border:"none",fontWeight:600}} onClick={()=>save(null,null,familyName,null)}>Save</button>
             </div>
           </div>
-          <div style={{display:"flex",gap:"4px",marginBottom:"1rem"}}>
+          <div style={{display:"flex",gap:"4px",marginBottom:"1rem",background:THEME.panel,borderRadius:"10px",padding:"4px"}}>
             {[["timeline","Chronicle"],["tree","Family tree"]].map(([id,label])=>(
-              <button key={id} onClick={()=>setLegacyTab(id)} style={{padding:"6px 14px",fontSize:"12px",fontWeight:legacyTab===id?500:400,borderRadius:"var(--border-radius-md)",border:legacyTab===id?"0.5px solid var(--color-border-primary)":"0.5px solid transparent",background:legacyTab===id?"var(--color-background-secondary)":"transparent",color:"var(--color-text-primary)",cursor:"pointer"}}>{label}</button>
+              <button key={id} onClick={()=>setLegacyTab(id)} style={{padding:"6px 14px",fontSize:"12px",fontWeight:600,borderRadius:"8px",border:"none",background:legacyTab===id?THEME.gold:"transparent",color:legacyTab===id?"#fff":THEME.textMuted,cursor:"pointer",transition:"all 0.2s"}}>{label}</button>
             ))}
           </div>
           {legacyTab==="timeline"&&<Timeline events={events}/>}
           {legacyTab==="tree"&&<FamilyTree members={members} onSelect={setSelectedSim}/>}
-          {(members.length>0||events.length>0)&&<button onClick={clearLegacy} style={{marginTop:"2rem",fontSize:"12px",padding:"6px 12px",cursor:"pointer",color:"var(--color-text-danger)",borderColor:"var(--color-border-danger)",borderRadius:"var(--border-radius-md)"}}>Clear entire legacy</button>}
+          {(members.length>0||events.length>0)&&<button onClick={clearLegacy} style={{marginTop:"2rem",fontSize:"12px",padding:"6px 12px",cursor:"pointer",color:THEME.danger,border:`1px solid ${THEME.danger}`,borderRadius:"8px",background:"transparent"}}>Clear entire legacy</button>}
         </div>
       )}
+      </div>
     </div>
   );
 }
