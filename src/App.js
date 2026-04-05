@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { useState, useEffect, useRef } from "react";
+import { supabase } from './supabase';
 
 const ASPIRATIONS = ["Popularity","Romance","Family","Fortune","Knowledge","Pleasure","Grilled Cheese"];
 const MOODS = ["Platinum","Green","Slightly Uncomfortable","Miserable","Aspiration Failed"];
