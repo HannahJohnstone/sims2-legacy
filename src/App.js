@@ -498,8 +498,17 @@ function FamilySagaGenerator({members,events,familyName}){
   const [sagaBeats,setSagaBeats]=useState([]);const [todoList,setTodoList]=useState([]);
   const [loading,setLoading]=useState(false);const [error,setError]=useState("");
   const [focus,setFocus]=useState("whole");const [theme,setTheme]=useState("Any");
+  const [pinnedBeats,setPinnedBeats]=useState([]);
   const THEMES=["Any","Romantic drama","Family rivalries","Career & ambition","Supernatural events","Community & neighbourhood drama"];
-
+  
+  const togglePin=(beat,actions,index)=>{
+    setPinnedBeats(prev=>{
+      const exists=prev.find(p=>p.beat===beat);
+      if(exists) return prev.filter(p=>p.beat!==beat);
+      return [...prev,{beat,actions,index}];
+    });
+  };
+  
   const buildPrompt=()=>{
     const byGen={};
     members.forEach(m=>{if(!byGen[m.generation])byGen[m.generation]=[];byGen[m.generation].push(m);});
@@ -517,14 +526,6 @@ function FamilySagaGenerator({members,events,familyName}){
     if(theme!=="Any") ctx+=`\nTheme: ${theme}.`;
     ctx+=`\nFulfil or frustrate wants; use fears for tension.\nReturn JSON only:\n{"beats":[{"beat":"text","actions":[{"type":"task"|"relationship"|"challenge"|"fate","text":"action"}]}],"todo":[{"type":"...","text":"..."}]}\n5 beats, 0-2 actions each. todo: 3-6 items. No preamble, no backticks.`;
     return ctx;
-  };
-
-  const togglePin=(beat,actions,index)=>{
-    setPinnedBeats(prev=>{
-      const exists=prev.find(p=>p.beat===beat);
-      if(exists) return prev.filter(p=>p.beat!==beat);
-      return [...prev,{beat,actions,index}];
-    });
   };
 
   const generate=async()=>{
