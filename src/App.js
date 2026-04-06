@@ -612,20 +612,38 @@ export default function App(){
   const [storageLoaded,setStorageLoaded]=useState(false);
   const nextId=useRef(11);
 
-  useEffect(()=>{
-    (async()=>{
-      try{
-        const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
-        if(mb?.length>0){
-          setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
+useEffect(()=>{
+  (async()=>{
+    try{
+      const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
+      if(mb?.length>0){
+        const unique=Object.values(mb.reduce((acc,r)=>{
+          const key=r.data.name+"-"+r.data.generation;
+          if(!acc[key]) acc[key]=r;
+          return acc;
+        },{}));
+        if(unique.length<mb.length){
+          await supabase.from('members').delete().neq('id',0);
+          await supabase.from('members').insert(unique.map(r=>({data:r.data})));
+          setMembers(unique.map(r=>({wants:[],fears:[],...r.data})));
         } else {
-          await supabase.from('members').insert(SEED.map(m=>({data:m})));
-          setMembers(SEED);
+          setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
         }
-      }catch(e){console.error(e);}
-      setStorageLoaded(true);
-    })();
-  },[]);
+      } else {
+        await supabase.from('members').insert(SEED.map(m=>({data:m})));
+        setMembers(SEED);
+      }
+
+      const {data:ev}=await supabase.from('events').select('data').order('created_at',{ascending:false});
+      if(ev?.length>0) setEvents(ev.map(r=>r.data));
+
+      const {data:fn}=await supabase.from('settings').select('value').eq('key','familyName').single();
+      if(fn) setFamilyName(fn.value);
+
+    }catch(e){console.error(e);}
+    setStorageLoaded(true);
+  })();
+},[]);
 
   const save=async(nm,ne,nf)=>{
     try{
