@@ -616,13 +616,12 @@ export default function App(){
     (async()=>{
       try{
         const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
-        if(mb?.length>0) setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
-
-        const {data:ev}=await supabase.from('events').select('data').order('created_at',{ascending:false});
-        if(ev?.length>0) setEvents(ev.map(r=>r.data));
-
-        const {data:fn}=await supabase.from('settings').select('value').eq('key','familyName').single();
-        if(fn) setFamilyName(fn.value);
+        if(mb?.length>0){
+          setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
+        } else {
+          await supabase.from('members').insert(SEED.map(m=>({data:m})));
+          setMembers(SEED);
+        }
       }catch(e){console.error(e);}
       setStorageLoaded(true);
     })();
