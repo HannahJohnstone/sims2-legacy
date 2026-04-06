@@ -20,9 +20,19 @@ const WANT_SUGGESTIONS = ["Become a werewolf","Become a vampire","Become a plant
 const FEAR_SUGGESTIONS = ["Die","Get fired","Relative dies","Break up","Get demoted","Become a zombie","Burglary","House fire","Failing exam","Electrocution","Drowning","Satellite crash","Cockroach infestation","Having a bad date","Social bunny visit","Aspiration failure"];
 
 const THEME = {
-  bg:"#E8DCC8", panel:"#2C2118", panelAlt:"#3A2D20", border:"#5C4A32",
-  borderLight:"#7A6245", text:"#F5EDD8", textMuted:"#B8A080",
-  gold:"#C9923A", goldLight:"#E8B05A", brown:"#8B6340", danger:"#C0503A",
+  bg: "#D4C4A0",
+  panel: "#2A1F0E",
+  panelAlt: "#3D2E14",
+  border: "#6B5230",
+  borderLight: "#8B6E42",
+  text: "#F5EDD8",
+  textMuted: "#C4A96B",
+  gold: "#B8860B",
+  goldLight: "#D4A820",
+  brown: "#7A5C2E",
+  danger: "#A0392A",
+  accent: "#8B7355",
+  cardBg: "#1E1508",
 };
 
 const fs = {
@@ -465,7 +475,6 @@ function SimCard({m,onSelect}){
 function FamilyTree({members,onSelect,treeData}){
   if(!members.length) return <p style={{fontSize:"13px",color:THEME.textMuted,margin:0}}>No family members yet.</p>;
   if(!treeData?.length){
-    // fallback: flat gen view
     const byGen={};
     members.forEach(m=>{if(!byGen[m.generation])byGen[m.generation]=[];byGen[m.generation].push(m);});
     return(
@@ -484,6 +493,7 @@ function FamilyTree({members,onSelect,treeData}){
   }
 
   const findMember=(name)=>members.find(m=>m.name===name);
+  const lineStyle={background:THEME.borderLight};
 
   return(
     <div style={{overflowX:"auto",paddingBottom:"1rem"}}>
@@ -491,32 +501,46 @@ function FamilyTree({members,onSelect,treeData}){
         const p1=findMember(unit.partner1);
         const p2=unit.partner2?findMember(unit.partner2):null;
         const children=unit.children?.map(c=>findMember(c)).filter(Boolean)||[];
+        const cardW=130;
+        const gap=12;
+        const totalW=children.length*(cardW+gap)-gap;
+
         return(
-          <div key={ui} style={{marginBottom:"2rem"}}>
+          <div key={ui} style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:"8px"}}>
+            {/* Incoming line from parent unit */}
+            {ui>0&&<div style={{width:"2px",height:"24px",...lineStyle}}/>}
+
             {/* Couple row */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",marginBottom:"0"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
               {p1&&<SimCard m={p1} onSelect={onSelect}/>}
-              {p2&&<>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"2px"}}>
-                  <span style={{fontSize:"16px"}}>❤️</span>
-                  <div style={{width:"1px",height:"24px",background:THEME.border}}/>
-                </div>
-                <SimCard m={p2} onSelect={onSelect}/>
-              </>}
+              {p2&&(
+                <>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"2px"}}>
+                    <span style={{fontSize:"14px"}}>❤️</span>
+                    {children.length>0&&<div style={{width:"2px",height:"16px",...lineStyle}}/>}
+                  </div>
+                  <SimCard m={p2} onSelect={onSelect}/>
+                </>
+              )}
+              {!p2&&children.length>0&&(
+                <div style={{width:"2px",height:"16px",...lineStyle,marginLeft:"65px"}}/>
+              )}
             </div>
-            {/* Connector line down */}
+
+            {/* Children section */}
             {children.length>0&&(
               <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-                <div style={{width:"1px",height:"20px",background:THEME.border}}/>
-                {/* Horizontal bar */}
+                {/* Vertical down to horizontal bar */}
+                <div style={{width:"2px",height:"20px",...lineStyle}}/>
+                {/* Horizontal bar spanning children */}
                 {children.length>1&&(
-                  <div style={{position:"relative",width:`${children.length*158}px`,height:"1px",background:THEME.border}}/>
+                  <div style={{width:`${totalW}px`,height:"2px",...lineStyle}}/>
                 )}
-                {/* Children */}
-                <div style={{display:"flex",gap:"8px",marginTop:"0"}}>
+                {/* Children with vertical connectors */}
+                <div style={{display:"flex",gap:`${gap}px`,alignItems:"flex-start"}}>
                   {children.map((child,ci)=>(
                     <div key={ci} style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-                      <div style={{width:"1px",height:"20px",background:THEME.border}}/>
+                      <div style={{width:"2px",height:"20px",...lineStyle}}/>
                       <SimCard m={child} onSelect={onSelect}/>
                     </div>
                   ))}
