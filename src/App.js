@@ -750,37 +750,62 @@ export default function App(){
   const [storageLoaded,setStorageLoaded]=useState(false);
   const nextId=useRef(11);
 
-  useEffect(()=>{
-    (async()=>{
+useEffect(()=>{
+  (async()=>{
+    try{
+      // Check if we've ever seeded before
+      let alreadySeeded=false;
       try{
-        const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
-        if(mb?.length>0) setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
+        const {data:sd}=await supabase.from('settings').select('value').eq('key','seeded').single();
+        if(sd?.value==="true") alreadySeeded=true;
+      }catch{}
 
-        const {data:ev}=await supabase.from('events').select('data').order('created_at',{ascending:false});
-        if(ev?.length>0) setEvents(ev.map(r=>r.data));
+      // Load members
+      const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
+      if(mb?.length>0){
+        setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
+      } else if(!alreadySeeded){
+        await supabase.from('members').insert(SEED.map(m=>({data:m})));
+        await supabase.from('settings').upsert({key:'seeded',value:'true'});
+        setMembers(SEED);
+      }
 
+      // Load events
+      const {data:ev}=await supabase.from('events').select('data').order('created_at',{ascending:false});
+      if(ev?.length>0) setEvents(ev.map(r=>r.data));
+
+      // Load family name
+      try{
         const {data:fn}=await supabase.from('settings').select('value').eq('key','familyName').single();
         if(fn) setFamilyName(fn.value);
-      }catch(e){console.error(e);}
-      setStorageLoaded(true);
-    })();
-  },[]);
+      }catch{}
 
-  const save=async(nm,ne,nf)=>{
-    try{
-      if(nm!==null&&nm!==undefined){
-        await supabase.from('members').delete().neq('id',0);
-        if(nm.length>0) await supabase.from('members').insert(nm.map(m=>({data:m})));
-      }
-      if(ne!==null&&ne!==undefined){
-        await supabase.from('events').delete().neq('id',0);
-        if(ne.length>0) await supabase.from('events').insert(ne.map(e=>({data:e})));
-      }
-      if(nf!==null&&nf!==undefined){
-        await supabase.from('settings').upsert({key:'familyName',value:nf});
-      }
+      // Load tree data
+      try{
+        const {data:td}=await supabase.from('settings').select('value').eq('key','treeData').single();
+        if(td) setTreeData(JSON.parse(td.value));
+      }catch{}
+
     }catch(e){console.error(e);}
-  };
+    setStorageLoaded(true);
+  })();
+},[]);
+
+const save=async(nm,ne,nf)=>{
+  try{
+    if(nm!==null&&nm!==undefined){
+      await supabase.from('members').delete().neq('id',0);
+      if(nm.length>0) await supabase.from('members').insert(nm.map(m=>({data:m})));
+    }
+    if(ne!==null&&ne!==undefined){
+      await supabase.from('events').delete().neq('id',0);
+      if(ne.length>0) await supabase.from('events').insert(ne.map(e=>({data:e})));
+    }
+    if(nf!==null&&nf!==undefined){
+      await supabase.from('settings').upsert({key:'familyName',value:nf});
+    }
+  }catch(e){console.error(e);}
+};
 
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
   const setTrait=(k,v)=>setTraits(t=>({...t,[k]:v}));
@@ -829,6 +854,7 @@ export default function App(){
     try{
       await supabase.from('members').delete().neq('id',0);
       await supabase.from('events').delete().neq('id',0);
+      await supabase.from('settings').upsert({key:'seeded',value:'false'});
       await supabase.from('settings').upsert({key:'familyName',value:'The Stone-Danaher Legacy'});
       await supabase.from('members').insert(SEED.map(m=>({data:m})));
     }catch(e){console.error(e);}
