@@ -756,19 +756,21 @@ useEffect(()=>{
       // Check if we've ever seeded before
       let alreadySeeded=false;
       try{
-        const {data:sd}=await supabase.from('settings').select('value').eq('key','seeded').single();
-        if(sd?.value==="true") alreadySeeded=true;
-      }catch{}
+  const {data:sd}=await supabase.from('settings').select('value').eq('key','seeded').single();
+  if(sd?.value==="true") alreadySeeded=true;
+}catch{}
 
-      // Load members
-      const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
-      if(mb?.length>0){
-        setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
-      } else if(!alreadySeeded){
-        await supabase.from('members').insert(SEED.map(m=>({data:m})));
-        await supabase.from('settings').upsert({key:'seeded',value:'true'});
-        setMembers(SEED);
-      }
+// Load members
+const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
+if(mb?.length>0){
+  setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
+} else {
+  const {error:seedError}=await supabase.from('settings').insert({key:'seeded',value:'true'}).select();
+  if(!seedError){
+    await supabase.from('members').insert(SEED.map(m=>({data:m})));
+    setMembers(SEED);
+  }
+}
 
       // Load events
       const {data:ev}=await supabase.from('events').select('data').order('created_at',{ascending:false});
