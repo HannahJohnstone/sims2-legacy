@@ -785,11 +785,15 @@ const save=async(nm,ne,nf)=>{
   try{
     if(nm!==null&&nm!==undefined){
       await supabase.from('members').delete().neq('id',0);
-      if(nm.length>0) await supabase.from('members').insert(nm.map(m=>({data:m})));
+      if(nm.length>0){
+        await supabase.from('members').insert(nm.map(m=>({data:m})));
+      }
     }
     if(ne!==null&&ne!==undefined){
       await supabase.from('events').delete().neq('id',0);
-      if(ne.length>0) await supabase.from('events').insert(ne.map(e=>({data:e})));
+      if(ne.length>0){
+        await supabase.from('events').insert(ne.map(e=>({data:e})));
+      }
     }
     if(nf!==null&&nf!==undefined){
       await supabase.from('settings').upsert({key:'familyName',value:nf});
@@ -801,27 +805,43 @@ const save=async(nm,ne,nf)=>{
   const setTrait=(k,v)=>setTraits(t=>({...t,[k]:v}));
 
   const addMember=()=>{
-    if(!form.name.trim()){setError("Name required.");return;}
-    const m={id:nextId.current++,name:form.name,age:form.age,aspiration:form.aspiration,career:form.career,careerLevel:form.careerLevel,generation:parseInt(form.generation)||1,role:form.role,traits:{...traits},relationships:[...form.relationships],mood:form.mood,wants:[...form.wants],fears:[...form.fears]};
-    const nm=[...members,m];setMembers(nm);save(nm,null,null);
-    setError("");setAddedSim(form.name);
-    setForm({...defaultForm,generation:form.generation});setTraits(defaultTraits);
-    setBeats([]);setBeatActions([]);setTodoList([]);setSelectedBeat(null);
-    setTimeout(()=>setAddedSim(null),3000);
-  };
+  if(!form.name.trim()){setError("Name required.");return;}
+  const m={id:nextId.current++,name:form.name,age:form.age,aspiration:form.aspiration,career:form.career,careerLevel:form.careerLevel,generation:parseInt(form.generation)||1,role:form.role,traits:{...traits},relationships:[...form.relationships],mood:form.mood,wants:[...form.wants],fears:[...form.fears]};
+  const nm=[...members,m];setMembers(nm);
+  save(nm,null,null);
+  setError("");setAddedSim(form.name);
+  setForm({...defaultForm,generation:form.generation});setTraits(defaultTraits);
+  setBeats([]);setBeatActions([]);setTodoList([]);setSelectedBeat(null);
+  setTimeout(()=>setAddedSim(null),3000);
+};
 
-  const updateMember=(updated)=>{
-    const nm=members.map(m=>m.id===updated.id?updated:m);
-    setMembers(nm);save(nm,null,null);
-    setSelectedSim(prev=>prev?.id===updated.id?updated:prev);
-  };
+const updateMember=async(updated)=>{
+  const nm=members.map(m=>m.id===updated.id?updated:m);
+  setMembers(nm);
+  setSelectedSim(prev=>prev?.id===updated.id?updated:prev);
+  try{
+    await supabase.from('members').delete().neq('id',0);
+    if(nm.length>0) await supabase.from('members').insert(nm.map(m=>({data:m})));
+  }catch(e){console.error(e);}
+};
 
-  const updateMemberByName=(updated)=>{
-    const nm=members.map(m=>m.id===updated.id?updated:m);
-    setMembers(nm);save(nm,null,null);
-  };
+const updateMemberByName=async(updated)=>{
+  const nm=members.map(m=>m.id===updated.id?updated:m);
+  setMembers(nm);
+  try{
+    await supabase.from('members').delete().neq('id',0);
+    if(nm.length>0) await supabase.from('members').insert(nm.map(m=>({data:m})));
+  }catch(e){console.error(e);}
+};
 
-  const deleteMember=(id)=>{const nm=members.filter(m=>m.id!==id);setMembers(nm);save(nm,null,null);setSelectedSim(null);};
+const deleteMember=async(id)=>{
+  const nm=members.filter(m=>m.id!==id);
+  setMembers(nm);setSelectedSim(null);
+  try{
+    await supabase.from('members').delete().neq('id',0);
+    if(nm.length>0) await supabase.from('members').insert(nm.map(m=>({data:m})));
+  }catch(e){console.error(e);}
+};
 
   const loadToGenerator=(sim)=>{
     setForm({name:sim.name,age:sim.age||"",aspiration:sim.aspiration||"",career:sim.career||"",careerLevel:sim.careerLevel||"1",relationships:sim.relationships||[],situation:"",recentEvents:"",mood:sim.mood||"",generation:String(sim.generation),role:sim.role||"",wants:sim.wants||[],fears:sim.fears||[]});
@@ -829,26 +849,30 @@ const save=async(nm,ne,nf)=>{
     setSelectedSim(null);setTab("generator");setBeats([]);setBeatActions([]);setTodoList([]);setSelectedBeat(null);
   };
 
-  const logBeat=(beat)=>{
-    const ev={beat,simName:form.name||"Unknown Sim",generation:parseInt(form.generation)||1,ts:Date.now()};
-    const ne=[ev,...events];setEvents(ne);setSelectedBeat(beat);save(null,ne,null);
-  };
+const logBeat=(beat)=>{
+  const ev={beat,simName:form.name||"Unknown Sim",generation:parseInt(form.generation)||1,ts:Date.now()};
+  const ne=[ev,...events];setEvents(ne);setSelectedBeat(beat);
+  save(null,ne,null);
+};
 
-  const logEventFromChat=(ev)=>{
-    const ne=[ev,...events];setEvents(ne);save(null,ne,null);
-  };
+const logEventFromChat=(ev)=>{
+  const ne=[ev,...events];setEvents(ne);
+  save(null,ne,null);
+};
 
-  const clearLegacy=async()=>{
-    if(!confirm("Clear the entire legacy? This cannot be undone.")) return;
-    setMembers(SEED);setEvents([]);setFamilyName("The Stone-Danaher Legacy");nextId.current=11;
-    try{
-      await supabase.from('members').delete().neq('id',0);
-      await supabase.from('events').delete().neq('id',0);
-      await supabase.from('settings').upsert({key:'seeded',value:'false'});
-      await supabase.from('settings').upsert({key:'familyName',value:'The Stone-Danaher Legacy'});
-      await supabase.from('members').insert(SEED.map(m=>({data:m})));
-    }catch(e){console.error(e);}
-  };
+const clearLegacy=async()=>{
+  if(!window.confirm("Clear the entire legacy? This cannot be undone.")) return;
+  try{
+    await supabase.from('members').delete().neq('id',0);
+    await supabase.from('events').delete().neq('id',0);
+    await supabase.from('settings').upsert({key:'familyName',value:'The Stone-Danaher Legacy'});
+    const {data:newMembers}=await supabase.from('members').insert(SEED.map(m=>({data:m}))).select();
+    setMembers(SEED);
+    setEvents([]);
+    setFamilyName("The Stone-Danaher Legacy");
+    nextId.current=11;
+  }catch(e){console.error(e);}
+};
 
   const buildContext=()=>{
     let ctx="";
