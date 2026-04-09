@@ -753,23 +753,11 @@ export default function App(){
 useEffect(()=>{
   (async()=>{
     try{
-      // Check if we've ever seeded before
-      let alreadySeeded=false;
-      try{
-  const {data:sd}=await supabase.from('settings').select('value').eq('key','seeded').single();
-  if(sd?.value==="true") alreadySeeded=true;
-}catch{}
 
 // Load members
-const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
-if(mb?.length>0){
+ const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
+ if(mb?.length>0){
   setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
-} else {
-  const {error:seedError}=await supabase.from('settings').insert({key:'seeded',value:'true'}).select();
-  if(!seedError){
-    await supabase.from('members').insert(SEED.map(m=>({data:m})));
-    setMembers(SEED);
-  }
 }
 
       // Load events
