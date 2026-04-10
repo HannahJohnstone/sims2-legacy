@@ -1,7 +1,6 @@
 /* eslint-disable no-restricted-globals */
 /* eslint-disable no-unused-vars */
 import { useState, useEffect, useRef } from "react";
-import { supabase } from './supabase';
 
 const ASPIRATIONS = ["Popularity","Romance","Family","Fortune","Knowledge","Pleasure","Grilled Cheese"];
 const MOODS = ["Platinum","Green","Slightly Uncomfortable","Miserable","Aspiration Failed"];
@@ -20,19 +19,10 @@ const WANT_SUGGESTIONS = ["Become a werewolf","Become a vampire","Become a plant
 const FEAR_SUGGESTIONS = ["Die","Get fired","Relative dies","Break up","Get demoted","Become a zombie","Burglary","House fire","Failing exam","Electrocution","Drowning","Satellite crash","Cockroach infestation","Having a bad date","Social bunny visit","Aspiration failure"];
 
 const THEME = {
-  bg: "#D4C4A0",
-  panel: "#2A1F0E",
-  panelAlt: "#3D2E14",
-  border: "#6B5230",
-  borderLight: "#8B6E42",
-  text: "#F5EDD8",
-  textMuted: "#C4A96B",
-  gold: "#B8860B",
-  goldLight: "#D4A820",
-  brown: "#7A5C2E",
-  danger: "#A0392A",
-  accent: "#8B7355",
-  cardBg: "#1E1508",
+  bg:"#D4C4A0", panel:"#2A1F0E", panelAlt:"#3D2E14", border:"#6B5230",
+  borderLight:"#8B6E42", text:"#F5EDD8", textMuted:"#C4A96B",
+  gold:"#B8860B", goldLight:"#D4A820", brown:"#7A5C2E", danger:"#A0392A",
+  accent:"#8B7355", cardBg:"#1E1508",
 };
 
 const fs = {
@@ -233,26 +223,25 @@ function LegacyChat({members,events,familyName,onUpdateMember,onLogEvent}){
   const bottomRef=useRef(null);
 
   useEffect(()=>{
-    (async()=>{
-      try{
-        const {data}=await supabase.from('chat_history').select('role,content').order('created_at',{ascending:true});
-        if(data?.length>0) setMessages(data);
-      }catch(e){console.error(e);}
-    })();
+    try{
+      const saved=localStorage.getItem("legacy-chat");
+      if(saved){const p=JSON.parse(saved);if(p.length>0)setMessages(p);}
+    }catch(e){console.error(e);}
   },[]);
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages]);
 
-  const saveMessage=async(role,content)=>{
-    try{ await supabase.from('chat_history').insert({role,content}); }catch(e){console.error(e);}
+  const saveMessage=(role,content)=>{
+    try{
+      const existing=JSON.parse(localStorage.getItem("legacy-chat")||"[]");
+      localStorage.setItem("legacy-chat",JSON.stringify([...existing,{role,content}]));
+    }catch(e){console.error(e);}
   };
 
-  const clearChat=async()=>{
-    try{
-      await supabase.from('chat_history').delete().neq('id',0);
-      setMessages([defaultMsg]);
-      await supabase.from('chat_history').insert({role:defaultMsg.role,content:defaultMsg.content});
-    }catch(e){console.error(e);}
+  const clearChat=()=>{
+    localStorage.removeItem("legacy-chat");
+    setMessages([defaultMsg]);
+    localStorage.setItem("legacy-chat",JSON.stringify([defaultMsg]));
   };
 
   const buildSystemPrompt=()=>{
@@ -387,7 +376,6 @@ function SimModal({sim,events,members,onClose,onSave,onLoadToGenerator,onDelete}
             <button onClick={onClose} style={{fontSize:"18px",background:"none",border:"none",cursor:"pointer",color:THEME.textMuted,lineHeight:1,padding:"4px"}}>×</button>
           </div>
         </div>
-
         {!editing?(
           <>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"1rem"}}>
@@ -458,7 +446,7 @@ function SimModal({sim,events,members,onClose,onSave,onLoadToGenerator,onDelete}
   );
 }
 
-// ── Sim Card (reusable) ───────────────────────────────────────────────────────
+// ── Sim Card ──────────────────────────────────────────────────────────────────
 function SimCard({m,onSelect}){
   const col=GEN_COLORS[(m.generation-1)%GEN_COLORS.length];
   return(
@@ -471,7 +459,7 @@ function SimCard({m,onSelect}){
   );
 }
 
-// ── Family Tree (visual) ──────────────────────────────────────────────────────
+// ── Family Tree ───────────────────────────────────────────────────────────────
 function FamilyTree({members,onSelect,treeData}){
   if(!members.length) return <p style={{fontSize:"13px",color:THEME.textMuted,margin:0}}>No family members yet.</p>;
   if(!treeData?.length){
@@ -491,26 +479,19 @@ function FamilyTree({members,onSelect,treeData}){
       </div>
     );
   }
-
   const findMember=(name)=>members.find(m=>m.name===name);
   const lineStyle={background:THEME.borderLight};
-
   return(
     <div style={{overflowX:"auto",paddingBottom:"1rem"}}>
       {treeData.map((unit,ui)=>{
         const p1=findMember(unit.partner1);
         const p2=unit.partner2?findMember(unit.partner2):null;
         const children=unit.children?.map(c=>findMember(c)).filter(Boolean)||[];
-        const cardW=130;
-        const gap=12;
+        const cardW=130;const gap=12;
         const totalW=children.length*(cardW+gap)-gap;
-
         return(
           <div key={ui} style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:"8px"}}>
-            {/* Incoming line from parent unit */}
             {ui>0&&<div style={{width:"2px",height:"24px",...lineStyle}}/>}
-
-            {/* Couple row */}
             <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
               {p1&&<SimCard m={p1} onSelect={onSelect}/>}
               {p2&&(
@@ -522,21 +503,11 @@ function FamilyTree({members,onSelect,treeData}){
                   <SimCard m={p2} onSelect={onSelect}/>
                 </>
               )}
-              {!p2&&children.length>0&&(
-                <div style={{width:"2px",height:"16px",...lineStyle,marginLeft:"65px"}}/>
-              )}
             </div>
-
-            {/* Children section */}
             {children.length>0&&(
               <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-                {/* Vertical down to horizontal bar */}
                 <div style={{width:"2px",height:"20px",...lineStyle}}/>
-                {/* Horizontal bar spanning children */}
-                {children.length>1&&(
-                  <div style={{width:`${totalW}px`,height:"2px",...lineStyle}}/>
-                )}
-                {/* Children with vertical connectors */}
+                {children.length>1&&<div style={{width:`${totalW}px`,height:"2px",...lineStyle}}/>}
                 <div style={{display:"flex",gap:`${gap}px`,alignItems:"flex-start"}}>
                   {children.map((child,ci)=>(
                     <div key={ci} style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
@@ -558,17 +529,15 @@ function FamilyTree({members,onSelect,treeData}){
 function TreeBuilder({members,treeData,onSave}){
   const [units,setUnits]=useState(treeData||[]);
   const alive=members.map(m=>m.name);
-
   const addUnit=()=>setUnits(u=>[...u,{partner1:"",partner2:"",children:[]}]);
   const removeUnit=(i)=>setUnits(u=>u.filter((_,idx)=>idx!==i));
   const updateUnit=(i,field,val)=>setUnits(u=>u.map((u2,idx)=>idx===i?{...u2,[field]:val}:u2));
   const addChild=(i)=>setUnits(u=>u.map((u2,idx)=>idx===i?{...u2,children:[...u2.children,""]}:u2));
   const updateChild=(ui,ci,val)=>setUnits(u=>u.map((u2,idx)=>idx===ui?{...u2,children:u2.children.map((c,cIdx)=>cIdx===ci?val:c)}:u2));
   const removeChild=(ui,ci)=>setUnits(u=>u.map((u2,idx)=>idx===ui?{...u2,children:u2.children.filter((_,cIdx)=>cIdx!==ci)}:u2));
-
   return(
     <div>
-      <p style={{fontSize:"13px",color:THEME.textMuted,marginTop:0,marginBottom:"1rem",lineHeight:1.6}}>Define couples and their children to build your family tree. Each unit is a couple (or single parent) and their children.</p>
+      <p style={{fontSize:"13px",color:THEME.textMuted,marginTop:0,marginBottom:"1rem",lineHeight:1.6}}>Define couples and their children to build your family tree.</p>
       {units.map((unit,i)=>(
         <div key={i} style={{...fs.card,marginBottom:"12px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
@@ -576,28 +545,13 @@ function TreeBuilder({members,treeData,onSave}){
             <button onClick={()=>removeUnit(i)} style={{background:"none",border:"none",cursor:"pointer",color:THEME.danger,fontSize:"13px"}}>Remove</button>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
-            <div>
-              <label style={fs.label}>Partner 1</label>
-              <select style={fs.field} value={unit.partner1} onChange={e=>updateUnit(i,"partner1",e.target.value)}>
-                <option value="">Select...</option>
-                {alive.map(n=><option key={n}>{n}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={fs.label}>Partner 2 (optional)</label>
-              <select style={fs.field} value={unit.partner2||""} onChange={e=>updateUnit(i,"partner2",e.target.value)}>
-                <option value="">None / Single parent</option>
-                {alive.map(n=><option key={n}>{n}</option>)}
-              </select>
-            </div>
+            <div><label style={fs.label}>Partner 1</label><select style={fs.field} value={unit.partner1} onChange={e=>updateUnit(i,"partner1",e.target.value)}><option value="">Select...</option>{alive.map(n=><option key={n}>{n}</option>)}</select></div>
+            <div><label style={fs.label}>Partner 2 (optional)</label><select style={fs.field} value={unit.partner2||""} onChange={e=>updateUnit(i,"partner2",e.target.value)}><option value="">None</option>{alive.map(n=><option key={n}>{n}</option>)}</select></div>
           </div>
           <label style={{...fs.label,marginBottom:"6px"}}>Children</label>
           {unit.children.map((child,ci)=>(
             <div key={ci} style={{display:"flex",gap:"6px",marginBottom:"6px"}}>
-              <select style={{...fs.field,marginTop:0,flex:1}} value={child} onChange={e=>updateChild(i,ci,e.target.value)}>
-                <option value="">Select...</option>
-                {alive.map(n=><option key={n}>{n}</option>)}
-              </select>
+              <select style={{...fs.field,marginTop:0,flex:1}} value={child} onChange={e=>updateChild(i,ci,e.target.value)}><option value="">Select...</option>{alive.map(n=><option key={n}>{n}</option>)}</select>
               <button onClick={()=>removeChild(i,ci)} style={{padding:"6px 10px",borderRadius:"8px",cursor:"pointer",background:"transparent",color:THEME.danger,border:`1px solid ${THEME.danger}`}}>×</button>
             </div>
           ))}
@@ -668,7 +622,7 @@ function FamilySagaGenerator({members,events,familyName}){
 
   const generate=async()=>{
     if(!members.length){setError("Add some family members first!");return;}
-    setError("");setLoading(true);setSagaBeats([]);setTodoList([]);
+    setError("");setLoading(true);setSagaBeats([]);setTodoList([]);setPinnedBeats([]);
     try{
       const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:buildPrompt()}]})});
       const data=await res.json();
@@ -739,109 +693,79 @@ function FamilySagaGenerator({members,events,familyName}){
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App(){
-  const [tab,setTab]=useState("generator");const [legacyTab,setLegacyTab]=useState("timeline");
+  const [tab,setTab]=useState("generator");
+  const [legacyTab,setLegacyTab]=useState("timeline");
   const [treeData,setTreeData]=useState([]);
-  const [form,setForm]=useState(defaultForm);const [traits,setTraits]=useState(defaultTraits);
-  const [beats,setBeats]=useState([]);const [beatActions,setBeatActions]=useState([]);const [todoList,setTodoList]=useState([]);
-  const [loading,setLoading]=useState(false);const [selectedBeat,setSelectedBeat]=useState(null);const [error,setError]=useState("");
-  const [members,setMembers]=useState(SEED);const [events,setEvents]=useState([]);
+  const [form,setForm]=useState(defaultForm);
+  const [traits,setTraits]=useState(defaultTraits);
+  const [beats,setBeats]=useState([]);
+  const [beatActions,setBeatActions]=useState([]);
+  const [todoList,setTodoList]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [selectedBeat,setSelectedBeat]=useState(null);
+  const [error,setError]=useState("");
+  const [members,setMembers]=useState(SEED);
+  const [events,setEvents]=useState([]);
   const [familyName,setFamilyName]=useState("The Stone-Danaher Legacy");
-  const [selectedSim,setSelectedSim]=useState(null);const [addedSim,setAddedSim]=useState(null);
+  const [selectedSim,setSelectedSim]=useState(null);
+  const [addedSim,setAddedSim]=useState(null);
   const [storageLoaded,setStorageLoaded]=useState(false);
   const nextId=useRef(11);
 
-useEffect(()=>{
-  (async()=>{
+  useEffect(()=>{
     try{
-
-// Load members
- const {data:mb}=await supabase.from('members').select('data').order('id',{ascending:true});
- if(mb?.length>0){
-  setMembers(mb.map(r=>({wants:[],fears:[],...r.data})));
-}
-
-      // Load events
-      const {data:ev}=await supabase.from('events').select('data').order('created_at',{ascending:false});
-      if(ev?.length>0) setEvents(ev.map(r=>r.data));
-
-      // Load family name
-      try{
-        const {data:fn}=await supabase.from('settings').select('value').eq('key','familyName').single();
-        if(fn) setFamilyName(fn.value);
-      }catch{}
-
-      // Load tree data
-      try{
-        const {data:td}=await supabase.from('settings').select('value').eq('key','treeData').single();
-        if(td) setTreeData(JSON.parse(td.value));
-      }catch{}
-
+      const fn=localStorage.getItem("legacy-familyName");
+      const mb=localStorage.getItem("legacy-members");
+      const ev=localStorage.getItem("legacy-events");
+      const td=localStorage.getItem("legacy-treeData");
+      const ni=localStorage.getItem("legacy-nextId");
+      if(fn) setFamilyName(fn);
+      if(mb){const p=JSON.parse(mb);if(p.length>0)setMembers(p.map(m=>({wants:[],fears:[],...m})));}
+      if(ev) setEvents(JSON.parse(ev));
+      if(td) setTreeData(JSON.parse(td));
+      if(ni) nextId.current=parseInt(ni);
     }catch(e){console.error(e);}
     setStorageLoaded(true);
-  })();
-},[]);
+  },[]);
 
-const save=async(nm,ne,nf)=>{
-  try{
-    if(nm!==null&&nm!==undefined){
-      await supabase.from('members').delete().neq('id',0);
-      if(nm.length>0){
-        await supabase.from('members').insert(nm.map(m=>({data:m})));
-      }
-    }
-    if(ne!==null&&ne!==undefined){
-      await supabase.from('events').delete().neq('id',0);
-      if(ne.length>0){
-        await supabase.from('events').insert(ne.map(e=>({data:e})));
-      }
-    }
-    if(nf!==null&&nf!==undefined){
-      await supabase.from('settings').upsert({key:'familyName',value:nf});
-    }
-  }catch(e){console.error(e);}
-};
+  const save=(nm,ne,nf,td)=>{
+    try{
+      if(nm!==null&&nm!==undefined) localStorage.setItem("legacy-members",JSON.stringify(nm));
+      if(ne!==null&&ne!==undefined) localStorage.setItem("legacy-events",JSON.stringify(ne));
+      if(nf!==null&&nf!==undefined) localStorage.setItem("legacy-familyName",nf);
+      if(td!==null&&td!==undefined) localStorage.setItem("legacy-treeData",JSON.stringify(td));
+      localStorage.setItem("legacy-nextId",String(nextId.current));
+    }catch(e){console.error(e);}
+  };
 
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
   const setTrait=(k,v)=>setTraits(t=>({...t,[k]:v}));
 
   const addMember=()=>{
-  if(!form.name.trim()){setError("Name required.");return;}
-  const m={id:nextId.current++,name:form.name,age:form.age,aspiration:form.aspiration,career:form.career,careerLevel:form.careerLevel,generation:parseInt(form.generation)||1,role:form.role,traits:{...traits},relationships:[...form.relationships],mood:form.mood,wants:[...form.wants],fears:[...form.fears]};
-  const nm=[...members,m];setMembers(nm);
-  save(nm,null,null);
-  setError("");setAddedSim(form.name);
-  setForm({...defaultForm,generation:form.generation});setTraits(defaultTraits);
-  setBeats([]);setBeatActions([]);setTodoList([]);setSelectedBeat(null);
-  setTimeout(()=>setAddedSim(null),3000);
-};
+    if(!form.name.trim()){setError("Name required.");return;}
+    const m={id:nextId.current++,name:form.name,age:form.age,aspiration:form.aspiration,career:form.career,careerLevel:form.careerLevel,generation:parseInt(form.generation)||1,role:form.role,traits:{...traits},relationships:[...form.relationships],mood:form.mood,wants:[...form.wants],fears:[...form.fears]};
+    const nm=[...members,m];setMembers(nm);save(nm,null,null,null);
+    setError("");setAddedSim(form.name);
+    setForm({...defaultForm,generation:form.generation});setTraits(defaultTraits);
+    setBeats([]);setBeatActions([]);setTodoList([]);setSelectedBeat(null);
+    setTimeout(()=>setAddedSim(null),3000);
+  };
 
-const updateMember=async(updated)=>{
-  const nm=members.map(m=>m.id===updated.id?updated:m);
-  setMembers(nm);
-  setSelectedSim(prev=>prev?.id===updated.id?updated:prev);
-  try{
-    await supabase.from('members').delete().neq('id',0);
-    if(nm.length>0) await supabase.from('members').insert(nm.map(m=>({data:m})));
-  }catch(e){console.error(e);}
-};
+  const updateMember=(updated)=>{
+    const nm=members.map(m=>m.id===updated.id?updated:m);
+    setMembers(nm);save(nm,null,null,null);
+    setSelectedSim(prev=>prev?.id===updated.id?updated:prev);
+  };
 
-const updateMemberByName=async(updated)=>{
-  const nm=members.map(m=>m.id===updated.id?updated:m);
-  setMembers(nm);
-  try{
-    await supabase.from('members').delete().neq('id',0);
-    if(nm.length>0) await supabase.from('members').insert(nm.map(m=>({data:m})));
-  }catch(e){console.error(e);}
-};
+  const updateMemberByName=(updated)=>{
+    const nm=members.map(m=>m.id===updated.id?updated:m);
+    setMembers(nm);save(nm,null,null,null);
+  };
 
-const deleteMember=async(id)=>{
-  const nm=members.filter(m=>m.id!==id);
-  setMembers(nm);setSelectedSim(null);
-  try{
-    await supabase.from('members').delete().neq('id',0);
-    if(nm.length>0) await supabase.from('members').insert(nm.map(m=>({data:m})));
-  }catch(e){console.error(e);}
-};
+  const deleteMember=(id)=>{
+    const nm=members.filter(m=>m.id!==id);
+    setMembers(nm);save(nm,null,null,null);setSelectedSim(null);
+  };
 
   const loadToGenerator=(sim)=>{
     setForm({name:sim.name,age:sim.age||"",aspiration:sim.aspiration||"",career:sim.career||"",careerLevel:sim.careerLevel||"1",relationships:sim.relationships||[],situation:"",recentEvents:"",mood:sim.mood||"",generation:String(sim.generation),role:sim.role||"",wants:sim.wants||[],fears:sim.fears||[]});
@@ -849,30 +773,25 @@ const deleteMember=async(id)=>{
     setSelectedSim(null);setTab("generator");setBeats([]);setBeatActions([]);setTodoList([]);setSelectedBeat(null);
   };
 
-const logBeat=(beat)=>{
-  const ev={beat,simName:form.name||"Unknown Sim",generation:parseInt(form.generation)||1,ts:Date.now()};
-  const ne=[ev,...events];setEvents(ne);setSelectedBeat(beat);
-  save(null,ne,null);
-};
+  const logBeat=(beat)=>{
+    const ev={beat,simName:form.name||"Unknown Sim",generation:parseInt(form.generation)||1,ts:Date.now()};
+    const ne=[ev,...events];setEvents(ne);setSelectedBeat(beat);save(null,ne,null,null);
+  };
 
-const logEventFromChat=(ev)=>{
-  const ne=[ev,...events];setEvents(ne);
-  save(null,ne,null);
-};
+  const logEventFromChat=(ev)=>{
+    const ne=[ev,...events];setEvents(ne);save(null,ne,null,null);
+  };
 
-const clearLegacy=async()=>{
-  if(!window.confirm("Clear the entire legacy? This cannot be undone.")) return;
-  try{
-    await supabase.from('members').delete().neq('id',0);
-    await supabase.from('events').delete().neq('id',0);
-    await supabase.from('settings').upsert({key:'familyName',value:'The Stone-Danaher Legacy'});
-    const {data:newMembers}=await supabase.from('members').insert(SEED.map(m=>({data:m}))).select();
-    setMembers(SEED);
-    setEvents([]);
-    setFamilyName("The Stone-Danaher Legacy");
-    nextId.current=11;
-  }catch(e){console.error(e);}
-};
+  const clearLegacy=()=>{
+    if(!window.confirm("Clear the entire legacy? This cannot be undone.")) return;
+    setMembers(SEED);setEvents([]);setFamilyName("The Stone-Danaher Legacy");
+    setTreeData([]);nextId.current=11;
+    localStorage.setItem("legacy-members",JSON.stringify(SEED));
+    localStorage.setItem("legacy-events",JSON.stringify([]));
+    localStorage.setItem("legacy-familyName","The Stone-Danaher Legacy");
+    localStorage.setItem("legacy-treeData",JSON.stringify([]));
+    localStorage.setItem("legacy-nextId","11");
+  };
 
   const buildContext=()=>{
     let ctx="";
@@ -979,7 +898,7 @@ const clearLegacy=async()=>{
               <label style={fs.label}>Legacy / family name</label>
               <div style={{display:"flex",gap:"8px",marginTop:"4px"}}>
                 <input style={{...fs.field,marginTop:0,flex:1}} placeholder="e.g. The Goth Legacy" value={familyName} onChange={e=>setFamilyName(e.target.value)}/>
-                <button style={{fontSize:"13px",padding:"8px 14px",borderRadius:"8px",cursor:"pointer",whiteSpace:"nowrap",background:THEME.gold,color:"#fff",border:"none",fontWeight:600}} onClick={()=>save(null,null,familyName)}>Save</button>
+                <button style={{fontSize:"13px",padding:"8px 14px",borderRadius:"8px",cursor:"pointer",whiteSpace:"nowrap",background:THEME.gold,color:"#fff",border:"none",fontWeight:600}} onClick={()=>save(null,null,familyName,null)}>Save</button>
               </div>
             </div>
             <div style={{display:"flex",gap:"4px",marginBottom:"1rem",background:THEME.panel,borderRadius:"10px",padding:"4px"}}>
@@ -989,7 +908,7 @@ const clearLegacy=async()=>{
             </div>
             {legacyTab==="timeline"&&<Timeline events={events}/>}
             {legacyTab==="tree"&&<FamilyTree members={members} onSelect={setSelectedSim} treeData={treeData}/>}
-            {legacyTab==="builder"&&<TreeBuilder members={members} treeData={treeData} onSave={async(units)=>{setTreeData(units);await supabase.from('settings').upsert({key:'treeData',value:JSON.stringify(units)});setLegacyTab("tree");}}/>}
+            {legacyTab==="builder"&&<TreeBuilder members={members} treeData={treeData} onSave={(units)=>{setTreeData(units);save(null,null,null,units);setLegacyTab("tree");}}/>}
             {(members.length>0||events.length>0)&&<button onClick={clearLegacy} style={{marginTop:"2rem",fontSize:"12px",padding:"6px 12px",cursor:"pointer",color:THEME.danger,border:`1px solid ${THEME.danger}`,borderRadius:"8px",background:"transparent"}}>Clear entire legacy</button>}
           </div>
         )}
