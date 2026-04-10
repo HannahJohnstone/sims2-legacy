@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="50" fill="#2A1F0E"/>
+  
+  <!-- Plumbob diamond shape -->
+  <!-- Top pyramid (lighter green) -->
+  <polygon points="50,15 70,50 50,42 30,50" fill="#4CAF50"/>
+  <!-- Left face -->
+  <polygon points="50,15 30,50 50,42" fill="#388E3C"/>
+  <!-- Right face -->
+  <polygon points="50,15 70,50 50,42" fill="#66BB6A"/>
+  
+  <!-- Bottom pyramid -->
+  <!-- Left face -->
+  <polygon points="30,50 50,42 50,82" fill="#2E7D32"/>
+  <!-- Right face -->
+  <polygon points="70,50 50,42 50,82" fill="#43A047"/>
+  
+  <!-- Shine highlight -->
+  <polygon points="50,18 65,46 50,40" fill="rgba(255,255,255,0.25)"/>
+  
+  <!-- Small dot at top -->
+  <circle cx="50" cy="14" r="2.5" fill="#A5D6A7"/>
+  
+  <!-- Vertical line at top -->
+  <line x1="50" y1="5" x2="50" y2="14" stroke="#A5D6A7" stroke-width="1.5"/>
+</svg>
